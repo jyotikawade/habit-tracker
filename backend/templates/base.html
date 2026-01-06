@@ -1,19 +1,36 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Habit Tracker</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Habit Tracker</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+        <!-- CSS -->
+        <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <!-- Content -->
-    {% block content %}
-    {% endblock %}
+        <header class="site-header">
+            <div class="container header-inner">
+                <a class="brand" href="/">Habit Tracker</a>
+                <nav class="nav">
+                    {% if user.is_authenticated %}
+                        <span class="nav-user">Hi, {{ user.username }}</span>
+                        <a class="btn btn-ghost" href="{% url 'logout' %}">Logout</a>
+                    {% else %}
+                        <a class="btn" href="{% url 'login' %}">Login</a>
+                        <a class="btn btn-alt" href="{% url 'signup' %}">Sign up</a>
+                    {% endif %}
+                </nav>
+            </div>
+        </header>
 
-    <!-- JS -->
-    <script src="{% static 'js/main.js' %}"></script>
+        <main class="container">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- JS -->
+        <script src="{% static 'js/main.js' %}"></script>
 </body>
 </html>

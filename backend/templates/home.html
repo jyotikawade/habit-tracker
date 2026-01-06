@@ -1,30 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Welcome {{ user.username }}</h2>
+<section class="dashboard">
+  <h1 class="page-title">Welcome{% if user.is_authenticated %}, {{ user.username }}{% endif %}</h1>
 
-<ul>
-  {% for h in habits %}
-    <li>
-        {{ h.title }}
-        <a href="/toggle/{{ h.id }}/">
-            {% if h.completed %}
-                ✔️
-            {% else %}
-                ⬜
-            {% endif %}
-        </a>
-    </li>
+  <div class="habit-list">
+    {% for h in habits %}
+    <div class="habit-card{% if h.completed %} completed{% endif %}">
+      <div class="habit-title">{{ h.title }}</div>
+      <a class="toggle-btn" href="/toggle/{{ h.id }}/">
+        {% if h.completed %}Undo{% else %}Done{% endif %}
+      </a>
+    </div>
+    {% empty %}
+    <div class="empty-state">No habits yet — add your first one below.</div>
+    {% endfor %}
+  </div>
 
-  {% empty %}
-      <li>No habits yet!</li>
-  {% endfor %}
-</ul>
-
-<form method="POST" action="/add/">
-  {% csrf_token %}
-  <input type="text" name="title" placeholder="New habit">
-  <button type="submit">Add</button>
-</form>
-
-<a href="{% url 'logout' %}">Logout</a>
+  <form class="add-form" method="POST" action="/add/">
+    {% csrf_token %}
+    <input type="text" name="title" placeholder="Add a new habit" required>
+    <button class="btn" type="submit">Add Habit</button>
+  </form>
+</section>
 {% endblock %}
