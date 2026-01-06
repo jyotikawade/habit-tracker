@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Welcome {{ user.username }}</h2>
+
+<ul>
+  {% for h in habits %}
+    <li>
+        {{ h.title }}
+        <a href="/toggle/{{ h.id }}/">
+            {% if h.completed %}
+                ✔️
+            {% else %}
+                ⬜
+            {% endif %}
+        </a>
+    </li>
+
+  {% empty %}
+      <li>No habits yet!</li>
+  {% endfor %}
+</ul>
+
+<form method="POST" action="/add/">
+  {% csrf_token %}
+  <input type="text" name="title" placeholder="New habit">
+  <button type="submit">Add</button>
+</form>
+
+<a href="{% url 'logout' %}">Logout</a>
+{% endblock %}

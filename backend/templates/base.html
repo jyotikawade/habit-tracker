@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Habit Tracker</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <!-- Content -->
+    {% block content %}
+    {% endblock %}
+
+    <!-- JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
