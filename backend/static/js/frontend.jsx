@@ -57,7 +57,6 @@ function App({mode='dashboard'}){
   const [month,setMonth] = useState(now.getMonth()+1);
   const [habits,setHabits] = useState([]);
   const [selectedHabits, setSelectedHabits] = useState([]);
-  const [pendingToggles, setPendingToggles] = useState([]);
   const pendingRef = useRef(new Set());
   const [monthlyData,setMonthlyData] = useState(null);
   const [yearlyData,setYearlyData] = useState(null);
@@ -69,20 +68,20 @@ function App({mode='dashboard'}){
   useEffect(()=>{ fetchAll(); }, [year, month]);
 
   // Refresh data when user returns to the tab (ensure UI matches server)
-  useEffect(()=>{
-    function handleVisibility(){
-      if(document.visibilityState === 'visible'){
-        console.log('Tab visible — refreshing habits');
-        fetchAll();
-      }
-    }
-    window.addEventListener('focus', handleVisibility);
-    document.addEventListener('visibilitychange', handleVisibility);
-    return ()=>{
-      window.removeEventListener('focus', handleVisibility);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    }
-  }, [year, month]);
+  // useEffect(()=>{
+  //   function handleVisibility(){
+  //     if(document.visibilityState === 'visible'){
+  //       console.log('Tab visible — refreshing habits');
+  //       fetchAll();
+  //     }
+  //   }
+  //   window.addEventListener('focus', handleVisibility);
+  //   document.addEventListener('visibilitychange', handleVisibility);
+  //   return ()=>{
+  //     window.removeEventListener('focus', handleVisibility);
+  //     document.removeEventListener('visibilitychange', handleVisibility);
+  //   }
+  // }, [year, month]);
 
   // helper to format today's full date
   function todayFullDate(){
@@ -98,7 +97,19 @@ function App({mode='dashboard'}){
     fetch(`/api/habits-for-month/?year=${year}&month=${month}`).then(r=>r.json()).then(d=>{
       const serverHabits = d.habits || [];
       setHabits(serverHabits.map(s => {
-        const days = (s.days || []).map(sd => ({...sd}));
+        const today = new Date();
+        const todayDay = today.getDate();
+
+        let days = (s.days || []).map(sd => ({...sd}));
+
+        // 🔥 FIX: ensure today's entry exists
+        if (!days.some(d => d.day === todayDay)) {
+          days.push({
+            day: todayDay,
+            completed: false
+          });
+        }
+
         const completed_count = days.filter(dy=>dy.completed).length;
         const percentage = days.length ? Math.round((completed_count / days.length) * 1000)/10 : 0;
         return {...s, days, completed_count, percentage};
@@ -149,73 +160,49 @@ function App({mode='dashboard'}){
 
   function onChange(y,m){ setYear(y); setMonth(m); }
 
-  async function onToggleToday(habitId){
-    console.trace('onToggleToday invoked', habitId);
-    // synchronous ref lock to avoid rapid duplicate requests
-    if(pendingRef.current.has(habitId)) return;
+  async function onToggleToday(habitId) {
+    if (pendingRef.current.has(habitId)) return;
     pendingRef.current.add(habitId);
-    setPendingToggles(prev => [...prev, habitId]);
 
-    // optimistic UI update: toggle local habit state immediately
-    const prevHabits = JSON.parse(JSON.stringify(habits));
-    const todayDate = (new Date()).getDate();
-    const current = (habits || []).find(h=>h.id===habitId) || null;
-    const currentCompleted = current && current.days ? !!(current.days.find(d=>d.day===todayDate && d.completed)) : false;
-    const desiredCompleted = !currentCompleted;
-    const newHabits = (habits || []).map(h => {
-      if(h.id !== habitId) return h;
-      const days = (h.days || []).map(d => d.day === todayDate ? ({...d, completed: desiredCompleted}) : d);
-      const completed_count = days.filter(d=>d.completed).length;
-      const percentage = h.days && h.days.length ? Math.round((completed_count / h.days.length) * 1000)/10 : 0;
-      return {...h, days, completed_count, percentage};
-    });
-    setHabits(newHabits);
+    const today = new Date().getDate();
+    const habit = habits.find(h => h.id === habitId);
+    const completedToday = habit?.days?.some(d => d.day === today && d.completed);
+    const desiredCompleted = !completedToday;
 
     const csrftoken = getCookie('csrftoken');
-    try{
-      const request_id = Date.now() + '-' + Math.random().toString(36).slice(2);
-      console.log('toggle request ->', {request_id, habit_id: habitId, completed: desiredCompleted});
+    function getLocalISODate() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    const todayISO = getLocalISODate();
+    try {
       const res = await fetch('/api/toggle-entry/', {
-        method:'POST',
-        headers: {'X-CSRFToken': csrftoken, 'Content-Type':'application/json', 'X-Request-ID': request_id},
-        body: JSON.stringify({request_id, habit_id: habitId, completed: desiredCompleted})
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          habit_id: habitId,
+          completed: desiredCompleted,
+          date: todayISO
+        })
       });
-      if(!res.ok){
-        const text = await res.text();
-        console.error('Toggle failed', res.status, text);
-        // revert optimistic update
-        setHabits(prevHabits);
-        alert('Could not toggle habit: '+text);
+
+      if (res.ok) {
+        fetchAll();
       } else {
-        // update local state using server response to avoid race with full refresh
-        const data = await res.json();
-        console.log('toggle response', data);
-        // If server returned a full habit payload, use it to replace the habit authoritatively.
-        if(data.habit){
-          const h = data.habit;
-          setHabits(prev => (prev || []).map(p => p.id === h.id ? h : p));
-        } else {
-          const toggledDate = (data.date || '').split('-').pop();
-          const toggledDay = parseInt(toggledDate, 10);
-          setHabits(prev => prev.map(h => {
-            if(h.id !== data.habit_id) return h;
-            const days = (h.days || []).map(d => d.day === toggledDay ? ({...d, completed: !!data.completed}) : d);
-            const completed_count = days.filter(d=>d.completed).length;
-            const percentage = days.length ? Math.round((completed_count / days.length) * 1000)/10 : 0;
-            return {...h, days, completed_count, percentage};
-          }));
-        }
+        alert(await res.text());
       }
-    }catch(e){
-      console.error('Toggle request error', e);
-      setHabits(prevHabits);
-      alert('Network error while toggling habit');
     } finally {
-      // always remove the synchronous lock and update pending state
       pendingRef.current.delete(habitId);
-      setPendingToggles(prev => prev.filter(id=>id!==habitId));
     }
   }
+
 
   async function addHabit(title){
     if(!title || !title.trim()) return;
@@ -286,7 +273,7 @@ function App({mode='dashboard'}){
                       const completedToday = h.days && h.days.some(d=>d.day === today && d.completed);
                       const label = completedToday ? 'Completed' : 'To Do';
                       const style = completedToday ? {background:'#10b981'} : {};
-                      const isPending = pendingToggles.includes(h.id);
+                      const isPending = pendingRef.current.has(h.id);
                       return <button className="btn" style={style} onClick={()=>onToggleToday(h.id)} disabled={isPending}>{isPending ? 'Updating...' : label}</button>;
                     })()
                   ) : null}
@@ -309,7 +296,7 @@ function App({mode='dashboard'}){
           </div>
           <div>
             <h3 style={{marginTop:0}}>All habits</h3>
-            {habits.map(h=> <HabitRow key={h.id} h={h} allowToggle={allowToggle} onToggleToday={onToggleToday} pending={pendingToggles.includes(h.id)} />)}
+            {habits.map(h=> <HabitRow key={h.id} h={h} allowToggle={allowToggle} onToggleToday={onToggleToday} pending={pendingRef.current.has(h.id)} />)}
           </div>
         </div>
       )}
@@ -371,3 +358,5 @@ if(mount){
   const mode = mount.dataset.mode || 'dashboard';
   ReactDOM.createRoot(mount).render(React.createElement(App, {mode}));
 }
+
+

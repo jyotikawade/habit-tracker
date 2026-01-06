@@ -127,29 +127,39 @@ def habits_for_month(request):
     except (TypeError, ValueError):
         year = today.year
         month = today.month
-    print(f"[habits_for_month] user={user.id} year={year} month={month}")
+
     _, ndays = calendar.monthrange(year, month)
     out = []
+
     habits = Habit.objects.filter(user=user)
     for h in habits:
+        # 1️⃣ Query existing entries for month
         entries = HabitEntry.objects.filter(habit=h, date__year=year, date__month=month)
         entry_map = {e.date.day: e.completed for e in entries}
-        # diagnostic: log today's value for this habit when applicable
-        try:
-            if year == today.year and month == today.month:
-                val = entry_map.get(today.day, False)
-                print(f"[habits_for_month] habit={h.id} today={today.isoformat()} completed={val}")
-        except Exception:
-            pass
+
+        # Only create if really missing, but don't overwrite anything
+        if year == today.year and month == today.month and today.day not in entry_map:
+            e = HabitEntry.objects.create(habit=h, date=today, completed=False, user=user)
+            entry_map[today.day] = e.completed
+
+        # 3️⃣ Build per-day list
         days = []
         completed_count = 0
         for d in range(1, ndays + 1):
-            completed = bool(entry_map.get(d, False))
+            completed = entry_map.get(d, False)
             days.append({"day": d, "completed": completed})
             if completed:
                 completed_count += 1
+
         pct = round((completed_count / ndays * 100), 1) if ndays else 0
-        out.append({"id": h.id, "title": h.title, "days": days, "completed_count": completed_count, "percentage": pct})
+        out.append({
+            "id": h.id,
+            "title": h.title,
+            "days": days,
+            "completed_count": completed_count,
+            "percentage": pct
+        })
+
     return JsonResponse({"habits": out, "ndays": ndays})
 
 
