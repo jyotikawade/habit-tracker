@@ -11,3 +11,11 @@ class HabitAdmin(admin.ModelAdmin):
 class HabitEntryAdmin(admin.ModelAdmin):
 	list_display = ("habit", "date", "completed")
 	list_filter = ("date", "completed")
+
+from .models import JournalEntry
+
+
+@admin.register(JournalEntry)
+class JournalEntryAdmin(admin.ModelAdmin):
+	list_display = ("user", "date")
+	search_fields = ("user__username",)

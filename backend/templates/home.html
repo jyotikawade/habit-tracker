@@ -1,29 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <section class="dashboard">
   <h1 class="page-title">Welcome{% if user.is_authenticated %}, {{ user.username }}{% endif %}</h1>
 
-  <div class="charts">
-    <div style="margin-bottom:18px;">
-      <canvas id="monthlyChart" height="120"></canvas>
-    </div>
-    <div>
-      <canvas id="yearlyChart" height="80"></canvas>
-    </div>
-  </div>
-
-  <div class="habit-list">
-    {% for h in habits %}
-    <div class="habit-card{% if h.today_completed %} completed{% endif %}">
-      <div class="habit-title">{{ h.title }}</div>
-      <a class="toggle-btn" href="/toggle/{{ h.id }}/">
-        {% if h.today_completed %}Undo{% else %}Done{% endif %}
-      </a>
-    </div>
-    {% empty %}
-    <div class="empty-state">No habits yet — add your first one below.</div>
-    {% endfor %}
-  </div>
+  <div id="habit-app" data-mode="dashboard"></div>
 
   <form class="add-form" method="POST" action="/add/">
     {% csrf_token %}

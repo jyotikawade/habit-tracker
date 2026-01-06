@@ -16,6 +16,10 @@
                 <a class="brand" href="/">Habit Tracker</a>
                 <nav class="nav">
                     {% if user.is_authenticated %}
+                        <!-- brand already links to home; omit duplicate nav item -->
+                        <a class="nav-link" href="{% url 'monthly_page' %}">Monthly Insights</a>
+                        <a class="nav-link" href="{% url 'yearly_page' %}">Yearly Summary</a>
+                        <a class="nav-link" href="{% url 'daily_journal' %}">Daily Journal</a>
                         <span class="nav-user">Hi, {{ user.username }}</span>
                         <a class="btn btn-ghost" href="{% url 'logout' %}">Logout</a>
                     {% else %}
@@ -32,6 +36,22 @@
 
         <!-- Charts -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!-- React for frontend widget -->
+        <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+                <script>
+                    // diagnostic logs to help identify client-side loading issues
+                    (function(){
+                        console.log('Page bootstrap:', {Chart: typeof Chart !== 'undefined', React: typeof React !== 'undefined', Babel: typeof Babel !== 'undefined'});
+                        document.addEventListener('DOMContentLoaded', function(){
+                            var mount = document.getElementById('habit-app');
+                            console.log('habit-app mount element present?', !!mount, mount && mount.dataset && mount.dataset.mode);
+                        });
+                    })();
+                </script>
+        <!-- React frontend (Babel must be loaded before JSX scripts) -->
+        <script type="text/babel" src="{% static 'js/frontend.jsx' %}"></script>
         <!-- JS -->
         <script src="{% static 'js/main.js' %}"></script>
 </body>
