@@ -29,10 +29,13 @@ body{
 .brand{font-weight:700;color:var(--accent);text-decoration:none;font-size:1.15rem}
 .nav{display:flex;gap:10px;align-items:center}
 .nav-user{color:var(--muted);margin-right:8px}
+.nav-link{color:rgba(15,23,42,0.8);text-decoration:none;padding:8px 10px;border-radius:8px;font-weight:600}
+.nav-link:hover{background:#eef2ff;color:var(--accent)}
+.nav-link.active{background:var(--accent);color:white}
 
 /* Buttons */
 .btn{background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:none;text-decoration:none;cursor:pointer;font-weight:600}
-.btn:hover{filter:brightness(.98)}
+.btn:hover{filter:brightness(.98);transform:translateY(-1px);transition:all .12s}
 .btn-alt{background:var(--accent-2)}
 .btn-ghost{background:transparent;border:1px solid #dbeafe;color:var(--accent);padding:6px 10px}
 .btn-block{display:block;width:100%}
@@ -55,6 +58,9 @@ body{
 .toggle-btn:hover{background:#eef2ff}
 
 .empty-state{padding:28px;background:linear-gradient(180deg,#ffffff,#fbfdff);border-radius:12px;color:var(--muted);text-align:center}
+
+/* Canvas responsive container */
+canvas{width:100%!important;height:auto!important}
 
 .add-form{display:flex;gap:8px}
 .add-form input{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef7}
